@@ -4,8 +4,8 @@ from flask import Flask, request
 from telegram import Update, Bot
 from telegram.ext import ApplicationBuilder, MessageHandler, CommandHandler, filters, ContextTypes
 
-BOT_TOKEN = "8586731532:AAG4jrBDXePwx5ATgjfGdaKm4WLN_tQ2UqU"
-WEBHOOK_URL = "https://aurivex.onrender.com"
+BOT_TOKEN = os.environ.get("BOT_TOKEN")
+WEBHOOK_URL = os.environ.get("WEBHOOK_URL")
 
 PORT = int(os.environ.get("PORT", 10000))
 
