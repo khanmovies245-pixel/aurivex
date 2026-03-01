@@ -1,21 +1,21 @@
 import os
 import yt_dlp
 from flask import Flask, request
-from telegram import Update, Bot
-from telegram.ext import ApplicationBuilder, MessageHandler, CommandHandler, filters, ContextTypes
+from telegram import Update
+from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters, ContextTypes
 
 BOT_TOKEN = os.environ.get("BOT_TOKEN")
 WEBHOOK_URL = os.environ.get("WEBHOOK_URL")
-
 PORT = int(os.environ.get("PORT", 10000))
 
 app = Flask(__name__)
-bot = Bot(token=BOT_TOKEN)
 telegram_app = ApplicationBuilder().token(BOT_TOKEN).build()
 
+# Start Command
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("Aurivex Music Bot Active\nSend any song name.")
+    await update.message.reply_text("🎵 Aurivex Music Bot Ready!")
 
+# Download Command
 async def download_song(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.message.text
     await update.message.reply_text("Downloading...")
@@ -35,25 +35,22 @@ async def download_song(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_audio(audio=open(filename, 'rb'))
         os.remove(filename)
 
-    except:
+    except Exception as e:
         await update.message.reply_text("Error downloading song.")
 
 telegram_app.add_handler(CommandHandler("start", start))
-telegram_app.add_handler(MessageHandler(filters.TEXT, download_song))
-
-@app.route(f"/{BOT_TOKEN}", methods=["POST"])
-def webhook():
-    update = Update.de_json(request.get_json(force=True), bot)
-    telegram_app.update_queue.put_nowait(update)
-    return "ok"
+telegram_app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, download_song))
 
 @app.route("/")
 def home():
     return "Aurivex Bot Running"
 
-def main():
-    bot.set_webhook(url=f"{WEBHOOK_URL}/{BOT_TOKEN}")
-    app.run(host="0.0.0.0", port=PORT)
+@app.route(f"/{BOT_TOKEN}", methods=["POST"])
+async def webhook():
+    update = Update.de_json(request.get_json(force=True), telegram_app.bot)
+    await telegram_app.process_update(update)
+    return "ok"
 
 if __name__ == "__main__":
-    main()
+    telegram_app.bot.set_webhook(f"{WEBHOOK_URL}/{BOT_TOKEN}")
+    app.run(host="0.0.0.0", port=PORT)
